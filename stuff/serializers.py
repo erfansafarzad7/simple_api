@@ -3,6 +3,8 @@ from stuff.models import Stuff
 
 
 class StuffSerializer(serializers.ModelSerializer):
+    owner = serializers.ReadOnlyField(source='owner.username')
+
     class Meta:
         model = Stuff
-        fields = ['name', 'descriptions']
+        fields = ['owner', 'name', 'descriptions']
