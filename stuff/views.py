@@ -1,23 +1,18 @@
-from django.http import HttpResponse, JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.parsers import JSONParser
-
-from rest_framework import status, permissions
-from rest_framework.decorators import api_view, permission_classes
+from django.http import Http404
+from rest_framework.views import APIView
+from rest_framework import status
 from rest_framework.response import Response
 from stuff.models import Stuff
 from stuff.serializers import StuffSerializer
 
 
-@api_view(['GET', 'POST'])
-@permission_classes((permissions.AllowAny,))
-def stuff_list(request, format=None):
-    if request.method == 'GET':
+class StuffList(APIView):
+    def get(self, request, format=None):
         stuff = Stuff.objects.all()
         serializer = StuffSerializer(stuff, many=True)
         return Response(serializer.data)
 
-    elif request.method == 'POST':
+    def post(self, request, format=None):
         serializer = StuffSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -25,25 +20,24 @@ def stuff_list(request, format=None):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET', 'POST', 'DELETE'])
-@permission_classes((permissions.AllowAny,))
-def stuff_detail(request, pk, format=None):
-    try:
-        stuff = Stuff.objects.get(pk=pk)
-    except Stuff.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+class StuffDetail(APIView):
+    def get_object(self, pk):
+        try:
+            stuff = Stuff.objects.get(pk=pk)
+        except Stuff.DoesNotExist:
+            return Http404
 
-    if request.method == 'GET':
-        serializer = StuffSerializer(stuff)
+    def get(self, request, pk, format=None):
+        serializer = StuffSerializer(self.get_object(pk))
         return Response(serializer.data)
 
-    elif request.method == 'PUT':
-        serializer = StuffSerializer(stuff, data=request.data)
+    def put(self, request, pk, format=None):
+        serializer = StuffSerializer(self.get_object(pk), data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    elif request.method == 'DELETE':
-        stuff.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def delete(self, request, pk, format=None):
+            self.get_object(pk).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
