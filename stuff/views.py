@@ -1,29 +1,21 @@
 from stuff.models import Stuff
 from stuff.serializers import StuffSerializer
 from stuff.permissions import IsOwnerOrReadOnly
-from rest_framework import permissions, generics, renderers
+from rest_framework import permissions, generics, renderers, viewsets
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
 
-class StuffName(generics.GenericAPIView):
+class StuffViewSet(viewsets.ModelViewSet):
     queryset = Stuff.objects.all()
-    renderer_classes = [renderers.StaticHTMLRenderer, ]
+    serializer_class = StuffSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,
+                          IsOwnerOrReadOnly]
 
-    def get(self, request, *args, **kwargs):
+    @action(detail=True, renderer_classes=[renderers.StaticHTMLRenderer, ], url_path='name')
+    def stuff_name(self, request, *args, **kwargs):
         stuff = self.get_object()
         return Response(stuff.name)
 
-
-class StuffList(generics.ListCreateAPIView):
-    queryset = Stuff.objects.all()
-    serializer_class = StuffSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
-
-
-class StuffDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Stuff.objects.all()
-    serializer_class = StuffSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
